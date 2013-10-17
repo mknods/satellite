@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "E4B69B5A0A3A1756003C02F2"
-               BuildableName = "hodoyoshi_pc_stub.app"
-               BlueprintName = "hodoyoshi_pc_stub"
-               ReferencedContainer = "container:hodoyoshi_pc_stub.xcodeproj">
+               BuildableName = "sat_pc_stub.app"
+               BlueprintName = "sat_pc_stub"
+               ReferencedContainer = "container:sat_pc_stub.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E4B69B5A0A3A1756003C02F2"
-            BuildableName = "hodoyoshi_pc_stub.app"
-            BlueprintName = "hodoyoshi_pc_stub"
-            ReferencedContainer = "container:hodoyoshi_pc_stub.xcodeproj">
+            BuildableName = "sat_pc_stub.app"
+            BlueprintName = "sat_pc_stub"
+            ReferencedContainer = "container:sat_pc_stub.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </TestAction>
@@ -52,9 +52,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E4B69B5A0A3A1756003C02F2"
-            BuildableName = "hodoyoshi_pc_stub.app"
-            BlueprintName = "hodoyoshi_pc_stub"
-            ReferencedContainer = "container:hodoyoshi_pc_stub.xcodeproj">
+            BuildableName = "sat_pc_stub.app"
+            BlueprintName = "sat_pc_stub"
+            ReferencedContainer = "container:sat_pc_stub.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <AdditionalOptions>
@@ -70,9 +70,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E4B69B5A0A3A1756003C02F2"
-            BuildableName = "hodoyoshi_pc_stub.app"
-            BlueprintName = "hodoyoshi_pc_stub"
-            ReferencedContainer = "container:hodoyoshi_pc_stub.xcodeproj">
+            BuildableName = "sat_pc_stub.app"
+            BlueprintName = "sat_pc_stub"
+            ReferencedContainer = "container:sat_pc_stub.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
