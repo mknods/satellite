@@ -17,8 +17,8 @@
 #include "cmd.h"
 #include "crc.h"
 
-#define BAUDRATE B115200
-//#define BAUDRATE 921600
+//#define BAUDRATE B115200
+#define BAUDRATE 921600
 
 
 //UART
@@ -67,12 +67,11 @@ long read_dev(int fd, CMD_DATA* cmd){
     
     uint8 rx_buf[256] = {0};
 
-    long len = read(fd, (void*)rx_buf, 255);	 //Filestream, buffer to store in, number of bytes to read (max)
+    long len = read(fd, (void*)rx_buf, 255);
     
     if (len < 0){
     }else if (len == 0){
     }else{
-        
         rx_buf[len] = '\0';
         printf("%ld bytes read : %s\n", len, rx_buf);
     }
@@ -90,7 +89,6 @@ void cmd_main(){
     fd_sci0 = open("/dev/ttyO4", O_RDWR | O_NOCTTY| O_NDELAY); // | O_NDELAY|O_NONBLOCK);
 #else
     fd_sci0 = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY| O_NDELAY); // | O_NDELAY|O_NONBLOCK);
-//    fd_sci0 = open("/dev/ttyAMA0", O_RDWR | O_NOCTTY); // | O_NDELAY|O_NONBLOCK);
 #endif
     if (fd_sci0 == -1)
     {
@@ -100,42 +98,22 @@ void cmd_main(){
 
     struct termios options;
 	tcgetattr(fd_sci0, &options);
-	//cfmakeraw(&options);
-	options.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
+	options.c_cflag = CS8 | CLOCAL | CREAD;
 	options.c_iflag = IGNPAR | ICRNL;
 	options.c_oflag = 0;
 	options.c_lflag = 0;
-
 	cfmakeraw(&options);
+
+	cfsetispeed(&options, BAUDRATE);
+	cfsetospeed(&options, BAUDRATE);
+
 	tcflush(fd_sci0, TCIFLUSH);
 	tcsetattr(fd_sci0, TCSANOW, &options);
     
     printf("UART opened\n");
     
-//    uint8 msg[] = "write test\n";
-//    long z = write(fd_sci0, msg, sizeof(msg));
-//    if( z < 0 ){
-//        printf("write error\n");
-//    }
-    
     int cmd_len = 0;
     uint8 rx_buf[256] = {0};
-
-/*
-    // LOOPBACK TEST
-    while(1){
-        memset( rx_buf, 0, 256) ;
-        cmd_len=0;
-        long len = read(fd_sci0, rx_buf, 255);
-        if(len>0){
-			for(int i=0; i<len; i++){
-			printf("0x%02x ", rx_buf[i]);
-			}
-			printf("\n");
-        }
-        write(fd_sci0, rx_buf, len);
-    }
-*/
 
     while(1){
 
@@ -244,9 +222,7 @@ void cmd_main(){
                             //VALID COMMAND
                             CMD_DATA dt = {0};
                             makeCmdData(cmd_buf, &dt, cmd_len);
-
 //                            printf("cmd =0x02%u\n", dt.cmd_id);
-
                             checkCmd(&dt);
                         }
                         app_st = APP_ST_NONE;       // END
@@ -270,10 +246,8 @@ void cmd_main(){
     //==============
     if (-1 == close(fd_sci0)) {
         perror("close error");
+        return;
     }
-    
-    printf("uart0 opened\n");
-    
 }
 
 int checkCmd(CMD_DATA* cmd){
@@ -348,7 +322,6 @@ void selectCommnd( CMD_DATA* dt ){
 	switch( dt->cmd_id & ~(DEVICE_MASK) ){
 		case CMD_RUN_CMD:
 			printf("=== CMD_RUN_CMD ===\n");
-//			run_cmd(dt);
 			run_cmd_popen(dt);
 			break;
 
@@ -378,12 +351,9 @@ void send(uint8* tx_data, int len){
         printf("write error\n");
     }
 
-    for(int i=0; i < z; i++){
-    	printf("%02x", tx_data[i]);
-    }
-	printf("\n");
-    usleep(100000);
+    usleep(20000);
 //      usleep(10000);
+
 }
 
 
@@ -533,9 +503,7 @@ void send_file( CMD_DATA* dt){
 
 		for (int i = 0; i < len; i++) {
 			tx_buf[idx+i] = file_dt[i];
-//			printf("0x%02x ", tx_buf[idx+i]);
 		}
-//		printf("\n");
 		idx += len;
 
 		uint16 crc_val = crc( &tx_buf[TLM_CMD_DISCRIMINATION], tx_size);
@@ -652,21 +620,16 @@ void run_cmd_popen( CMD_DATA* dt){
 	int len = 0;
 	int tx_size = 0;
 	uint8 tx_buf[256] = {0};
-//	uint8 file_dt[TLM_PARAM_SIZE] = {0};
 
 	int fsize;
 
 	FILE *fp;
 	char buf[255];
-//	char *cmdline = "cd /sat/img/ && split -b 1000000 IMG_10.jpg dt. && ls -l";
-//	char *cmdline = "cd /sat/img/ && split -b 1000000 IMG_10.jpg dt. && ls -l";
 
 	printf("%s (length=%d)\n", dt->cmd_param, strlen(dt->cmd_param));
 
-//	fp = popen(cmdline,"r");
 	fp = popen(dt->cmd_param,"r");
 	if( fp == NULL){
-//		printf("popen err %s\n", cmdline);
 		printf("popen err %s\n", dt->cmd_param);
 		return;
 	}
