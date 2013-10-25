@@ -15,9 +15,9 @@ uint8 rx_buf[1024];
 uint8 header[] = { 0x80,0x80 };
 
 uint8 hk_cmd[]      = { 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,DEVICE_ID|CMD_RUN_CMD, 0x81};
-//uint8 hk_cmd[]      = { 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,DEVICE_ID|CMD_RUN_CMD|0x0f, 0x81};	//udefined cmd
-uint8 mission_cmd[] = { 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,DEVICE_ID|CMD_GET_FILE,0x81};
+uint8 get_file_cmd[] = { 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,DEVICE_ID|CMD_GET_FILE,0x81};
 
+/*
 uint8 param[][185] = {
 		"raspivid -o /sat/mov/out.h264 -t 30000 && MP4Box -fps 30 -add /sat/mov/out.h264 /sat/out/out.mp4 &",
 		"/sat/sh/tl.sh 10 1920x1080 5 12 /dev/video0 50 &",
@@ -35,19 +35,17 @@ uint8 param[][185] = {
 //		"/sat/out/out.mp4",	// ファイル取得
 //		"/sat/out/img.tgz",	// ファイル取得
 };
-
+*/
 //ファイル転送
 uint8 put_file_cmd[] =
-	{ 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,DEVICE_ID|CMD_PUT_FILE, 0x81,
-	  'd','t','.','a','a',0,0,0,	//0x00以外の8byteまで(0x00がでてくるまで or max 8byte)
-	  0x10,
-	  '1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','a' };
-
+	{ 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,DEVICE_ID|CMD_PUT_FILE, 0x81};
+	//   header(12bytes)
+	// + filename (8bytes)
+	// + len(1bytes)
+	// + data(data bytes)
 
 int fd_out = -1;
-//uint8 out_file[] = "/Users/jiropost/out/img.jpg"; // LOCAL DL FILE
 uint8 out_file[] = "/Users/jiropost/out"; // LOCAL DL FILE
-//uint8 out_file[] = "/Users/jiropost/out/dt.ab"; // LOCAL DL FILE
 
 uint8 footer[] = { 0x81,0x81 };
 
@@ -73,6 +71,8 @@ long rcv_length=0;
 
 int fd_sci0;
 
+uint8 ofilename[64];
+
 
 void end(){
 
@@ -80,52 +80,14 @@ void end(){
 	close(fd_out);
 }
 
-void run_cmd(int num){
-
-//	if(num==3){
-//		uint8 test[] = { 0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f };
-//		long z = write(fd_sci0, test, sizeof(test) );
-//		return;
-//	}
+void run_cmd(uint8* p_param){
 
 	int len;
-	uint8* p_param = param[num];
 	int param_len = strlen( p_param );
 	memcpy( &tx_buf[0], header, 2 );
 
-	if( num < NUM_GET_FILE ){
-
-		len = sizeof(hk_cmd);
-		memcpy( &tx_buf[3], hk_cmd, len);
-
-	}else if( num == NUM_GET_FILE ){
-
-		len = sizeof(mission_cmd);
-		memcpy( &tx_buf[3], mission_cmd, len);
-
-	}else if( num == NUM_PUT ){
-
-		len = 12+8+1+put_file_cmd[20];
-		tx_buf[2] = len;
-
-		memcpy( &tx_buf[3], put_file_cmd, len);
-
-		uint16 u16_crc = crc( &put_file_cmd, sizeof(put_file_cmd) );
-		tx_buf[3+len] = (uint8)((u16_crc & 0xff00) >> 8);
-		tx_buf[3+len+1] = (uint8)((u16_crc & 0x00ff));
-		memcpy( &tx_buf[3+len+2], footer, 2 );
-
-		for(int i=0; i< len+7; i++){
-			printf("%02x\n",tx_buf[i]);
-		}
-		printf("\n");
-
-		long z = write(fd_sci0, tx_buf, len+7 );
-		if( z < 0 ){
-			printf("write error\n");
-		}
-		return;
-	}
+	len = sizeof(hk_cmd);
+	memcpy( &tx_buf[3], hk_cmd, len);
 
 	tx_buf[2] = (uint8)len + param_len;
 
@@ -148,6 +110,103 @@ void run_cmd(int num){
 		printf("write error\n");
 	}
 }
+
+
+void get_file( uint8* p_param ){
+
+	int len;
+	int param_len = strlen( p_param );
+	memcpy( &tx_buf[0], header, 2 );
+
+	strcpy(ofilename, p_param);
+
+	len = sizeof(get_file_cmd);
+	memcpy( &tx_buf[3], get_file_cmd, len);
+
+	tx_buf[2] = (uint8)len + param_len;
+
+	memcpy( &tx_buf[3+len], p_param, param_len );
+
+	len += param_len;
+
+	uint16 u16_crc = crc( &tx_buf[3], len );
+	tx_buf[3+len] = (uint8)((u16_crc & 0xff00) >> 8);
+	tx_buf[3+len+1] = (uint8)((u16_crc & 0x00ff));
+	memcpy( &tx_buf[3+len+2], footer, 2 );
+
+	for(int i=0; i< len+7; i++){
+		printf("%02x",tx_buf[i]);
+	}
+	printf("\n");
+
+	long z = write(fd_sci0, tx_buf, len+7 );
+	if( z < 0 ){
+		printf("write error\n");
+	}
+}
+
+
+
+void put_file(uint8* file_name){
+
+	uint8 file[64] = {0};
+	uint8 buf[255] = {0};
+	sprintf(file,"/Users/jiropost/out/put/%s", file_name);
+
+	int fp = open( file, O_RDONLY | O_NOCTTY);
+	if( fp < 0 ){
+		printf("[put_file] file is not founded.");
+		return;
+	}
+
+	uint8 len;
+	int param_len = strlen( file_name );
+	memcpy( &tx_buf[0], header, 2 );
+	memcpy( &tx_buf[3], put_file_cmd, sizeof(put_file_cmd));
+
+	strcpy( &tx_buf[15], file_name);
+
+	while(1){
+
+		len = read( fp, buf, CMD_PARAM_SIZE-9 );
+		if(len <= 0){
+			printf("[put_file] end of file\n");
+			break;
+		}
+		//LEN
+		tx_buf[2] = 12+8+1+len;
+
+		// clear
+		for(int i=23; i< 255; i++){
+			tx_buf[i]=0x00;
+		}
+
+		//set new data
+		tx_buf[23] = len; //len
+		for(int i=0; i< len; i++){
+			tx_buf[24+i] = buf[i];
+			printf("%02x ",tx_buf[i]);
+		}
+		printf("\n");
+
+		//CRC
+		uint16 u16_crc = crc( &tx_buf[3], sizeof(len) );
+		tx_buf[3+len] = (uint8)((u16_crc & 0xff00) >> 8);
+		tx_buf[3+len+1] = (uint8)((u16_crc & 0x00ff));
+
+		//ETX
+		memcpy( &tx_buf[3+len+2], footer, 2 );
+
+		// SEND BY UART
+		long z = write(fd_sci0, tx_buf, len+7 );
+		if( z < 0 ){
+			printf("write error\n");
+		}
+	}
+
+	return;
+}
+
 
 
 void drv_rcv(){
@@ -183,18 +242,17 @@ void drv_rcv(){
 	}
 
 
-	uint8 ofilename[64];
-	sprintf(ofilename, "%s%s",out_file, param[NUM_GET_FILE]);
-	printf("%s\n",ofilename);
-
-	fd_out = open(
-			ofilename,
-			O_CREAT| O_RDWR,
-			S_IRWXU|S_IRWXG|S_IRWXO);
-	if (fd_out < 0) {
-		perror("open error");
-		return;
-	}
+//	sprintf(ofilename, "%s%s",out_file, param[NUM_GET_FILE]);
+//	printf("%s\n",ofilename);
+//
+//	fd_out = open(
+//			ofilename,
+//			O_CREAT| O_RDWR,
+//			S_IRWXU|S_IRWXG|S_IRWXO);
+//	if (fd_out < 0) {
+//		perror("open error");
+//		return;
+//	}
 
 //	while(1){
 //
@@ -347,8 +405,13 @@ void drv_rcv(){
 						if( cmd_buf[cmd_sts] == CMD_STATUS_RECEIVED ){
 
 							if(fd_out < 0){
+
+								uint8 out[64] = {0};
+								sprintf(out, "%s%s",out_file, ofilename);
+								printf("%s\n",out);
+
 								fd_out = open(
-										out_file,
+										out,
 										O_NOCTTY | O_NONBLOCK |O_CREAT| O_RDWR,
 										S_IRWXU|S_IRWXG|S_IRWXO);
 							}
@@ -362,8 +425,12 @@ void drv_rcv(){
 						}else if( cmd_buf[cmd_sts] == CMD_STATUS_COMPLETED ){
 
 							if(fd_out < 0){
+								uint8 out[64] = {0};
+								sprintf(out, "%s%s",out_file, ofilename);
+								printf("%s\n",out);
+
 								fd_out = open(
-										out_file,
+										out,
 										O_RDWR | O_NOCTTY | O_NONBLOCK |O_CREAT| O_RDWR,
 										S_IRWXU|S_IRWXG|S_IRWXO);
 							}

@@ -23,6 +23,8 @@ uint8 input_buf[INPUT_BUF_SIZE];
 uint8 cmd_buf[INPUT_BUF_SIZE];
 
 
+static int cmd_state = 0;
+
 int main(int argc, const char * argv[])
 {
 
@@ -51,12 +53,16 @@ int main(int argc, const char * argv[])
 
 		if(u8_input == '\n'){
 
-			printf(">\n");
+			printf(">");
 
 			memset( cmd_buf, (uint8)0x00, INPUT_BUF_SIZE);
 
 			do{
-				cmd_buf[cmd_pos] = input_buf[pos_start];
+				if(input_buf[pos_start] == '\n'){
+					cmd_buf[cmd_pos] = 0x00;
+				}else{
+					cmd_buf[cmd_pos] = input_buf[pos_start];
+				}
 				cmd_pos++;
 				pos_start++;
 
@@ -64,43 +70,67 @@ int main(int argc, const char * argv[])
 					pos_start = 0;
 				}
 			}while( pos_start != pos );
+
 			cmd_pos = 0;
 
-			if( strcmp( "rec\n", &cmd_buf[0]) == 0 ){
-				run_cmd(NUM_VIDEO);
+			if(cmd_state==0){
 
-			} else if ( strcmp( "fswebcam\n", &cmd_buf[0]) == 0 ){
-				run_cmd(NUM_FSWEBCAM);
-
-			} else if ( strcmp( "led_on\n", &cmd_buf[0]) == 0 ){
-				run_cmd(NUM_LED_ON);
-
-			} else if ( strcmp( "led_off\n", &cmd_buf[0]) == 0 ){
-				run_cmd(NUM_LED_OFF);
-
-			} else if ( strcmp( "temp\n", &cmd_buf[0]) == 0 ){
-				run_cmd(NUM_TEMPRATURE);
-
-			} else if ( strcmp( "lux\n", &cmd_buf[0]) == 0 ){
-				run_cmd(NUM_CDS);
-
-			} else if ( strcmp( "irs\n", &cmd_buf[0]) == 0 ){
-				run_cmd(NUM_IRS);
-
-			} else if ( strcmp( "record\n", &cmd_buf[0]) == 0 ){
-				run_cmd(NUM_RECORD);
-
-			} else if ( strcmp( "file\n", &cmd_buf[0]) == 0 ){
-				run_cmd(NUM_GET_FILE);
-
-			} else if ( strcmp( "put\n", &cmd_buf[0]) == 0 ){
-				run_cmd(NUM_PUT);
-
-			} else if ( strcmp( "any\n", &cmd_buf[0]) == 0 ){
-				run_cmd(NUM_ANY);
-			} else if ( strcmp( "end\n", &cmd_buf[0]) == 0 ){
-				end();
+				if( strcmp( "run", &cmd_buf[0]) == 0 ){
+					cmd_state = 1;
+				}else if( strcmp( "get", &cmd_buf[0]) == 0 ){
+					cmd_state = 2;
+				}else if( strcmp( "put", &cmd_buf[0]) == 0 ){
+					cmd_state = 3;
+				}else{
+					cmd_state = 0;
+				}
+			}else{
+				if(cmd_state == 1){
+					run_cmd(&cmd_buf[0]);
+				}else if(cmd_state == 2){
+					get_file(&cmd_buf[0]);
+				}else if(cmd_state == 3){
+					put_file(&cmd_buf[0]);
+				}else{
+				}
+				cmd_state = 0;
 			}
+//
+//			if( strcmp( "rec\n", &cmd_buf[0]) == 0 ){
+//				run_cmd(NUM_VIDEO);
+//
+//			} else if ( strcmp( "fswebcam\n", &cmd_buf[0]) == 0 ){
+//				run_cmd(NUM_FSWEBCAM);
+//
+//			} else if ( strcmp( "led_on\n", &cmd_buf[0]) == 0 ){
+//				run_cmd(NUM_LED_ON);
+//
+//			} else if ( strcmp( "led_off\n", &cmd_buf[0]) == 0 ){
+//				run_cmd(NUM_LED_OFF);
+//
+//			} else if ( strcmp( "temp\n", &cmd_buf[0]) == 0 ){
+//				run_cmd(NUM_TEMPRATURE);
+//
+//			} else if ( strcmp( "lux\n", &cmd_buf[0]) == 0 ){
+//				run_cmd(NUM_CDS);
+//
+//			} else if ( strcmp( "irs\n", &cmd_buf[0]) == 0 ){
+//				run_cmd(NUM_IRS);
+//
+//			} else if ( strcmp( "record\n", &cmd_buf[0]) == 0 ){
+//				run_cmd(NUM_RECORD);
+//
+//			} else if ( strcmp( "file\n", &cmd_buf[0]) == 0 ){
+//				run_cmd(NUM_GET_FILE);
+//
+//			} else if ( strcmp( "put\n", &cmd_buf[0]) == 0 ){
+//				run_cmd(NUM_PUT);
+//
+//			} else if ( strcmp( "any\n", &cmd_buf[0]) == 0 ){
+//				run_cmd(NUM_ANY);
+//			} else if ( strcmp( "end\n", &cmd_buf[0]) == 0 ){
+//				end();
+//			}
 		}
 	}
 

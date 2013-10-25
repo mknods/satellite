@@ -33,6 +33,9 @@
 
 #define NUM_PUT 	    (10)
 
+#define TLM_PARAM_SIZE		((uint8)182)
+#define CMD_PARAM_SIZE		((uint8)185)
+
 //CMD
 #define CMD_RUN_CMD	    ((uint8)0x01)
 
@@ -155,7 +158,10 @@ typedef struct {
 // ===================
 void drv_rcv();
 //void get_buf_10ms();
-void run_cmd( int num);
+//void run_cmd( int num);
+void run_cmd(uint8* p_param);
+void get_file(uint8* p_param);
+void put_file(uint8* p_param);
 void end();
 
 #endif
