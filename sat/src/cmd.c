@@ -7,6 +7,8 @@
 //
 
 #include <stdio.h>
+#include <stdlib.h>
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
@@ -18,8 +20,7 @@
 #include "crc.h"
 
 //#define BAUDRATE B115200
-#define BAUDRATE 921600
-
+#define BAUDRATE B921600
 
 //UART
 #define BUF_SIZE    (1024)
@@ -48,8 +49,6 @@ uint8 app_st = APP_ST_NONE;
 uint16 crc_val = 0;
 
 char tlm_dt[182+8+15+1] = {0};
-#define TLM_PARAM_SIZE		((uint8)182)
-#define CMD_PARAM_SIZE		((uint8)185)
 
 
 FILE *fp;
@@ -67,13 +66,14 @@ long read_dev(int fd, CMD_DATA* cmd){
     
     uint8 rx_buf[256] = {0};
 
-    long len = read(fd, (void*)rx_buf, 255);
+    long len = read(fd, (void*)rx_buf, 255);	 //Filestream, buffer to store in, number of bytes to read (max)
     
     if (len < 0){
     }else if (len == 0){
     }else{
+        
         rx_buf[len] = '\0';
-        printf("%ld bytes read : %s\n", len, rx_buf);
+        PRINTF("%ld bytes read : %s\n", len, rx_buf);
     }
     return len;
 }
@@ -110,10 +110,25 @@ void cmd_main(){
 	tcflush(fd_sci0, TCIFLUSH);
 	tcsetattr(fd_sci0, TCSANOW, &options);
     
-    printf("UART opened\n");
+    PRINTF("UART opened\n");
     
     int cmd_len = 0;
     uint8 rx_buf[256] = {0};
+
+//    // LOOPBACK TEST
+//    while(1){
+//        memset( rx_buf, 0, 256) ;
+//        cmd_len=0;
+//        long len = read(fd_sci0, rx_buf, 255);
+//        if(len>0){
+//			for(int i=0; i<len; i++){
+//				PRINTF("0x%02x ", rx_buf[i]);
+//			}
+//			PRINTF("\n");
+//        }
+////        write(fd_sci0, rx_buf, len);
+//    }
+
 
     while(1){
 
@@ -132,16 +147,16 @@ void cmd_main(){
                     case APP_ST_NONE:
                     	dt_cnt = 0;
                         if( sci_buf[pos] == STX ){
-                            printf("STX [%u] = %02x\n", pos,sci_buf[pos]);
+                            PRINTF("STX [%u] = %02x\n", pos,sci_buf[pos]);
                             app_st = APP_ST_HEADER;
                         }else{
-                            printf("[%u] = %02x\n", pos,sci_buf[pos]);
+                            PRINTF("[%u] = %02x\n", pos,sci_buf[pos]);
                         }
                         break;
                         
                     case APP_ST_HEADER:
                     	if( sci_buf[pos] == STX ){
-                            printf("STX [%u] = %02x\n", pos,sci_buf[pos]);
+                            PRINTF("STX [%u] = %02x\n", pos,sci_buf[pos]);
                             app_st = APP_ST_LEN;
                         }else{
                             app_st = APP_ST_NONE;
@@ -153,7 +168,7 @@ void cmd_main(){
                     	//コマンド受信ごとにカウントアップ
                     	tlm_cmd_count++;
 
-                    	printf("LEN [%u] = %02x\n", pos,sci_buf[pos]);
+                    	PRINTF("LEN [%u] = %02x\n", pos,sci_buf[pos]);
                         app_st = APP_ST_CMD;
                         cmd_len = sci_buf[pos];
 
@@ -162,7 +177,7 @@ void cmd_main(){
                         break;
                         
                     case APP_ST_CMD:
-                        printf("CMD [%u] = %02x\n", pos,sci_buf[pos]);
+                        PRINTF("CMD [%u] = %02x\n", pos,sci_buf[pos]);
 
                         cmd_buf[dt_cnt] = sci_buf[pos];
                         dt_cnt++;
@@ -173,19 +188,19 @@ void cmd_main(){
 
                     case APP_ST_CRC1:
 
-                        printf("CRC1 [%u] = %02x\n", pos,sci_buf[pos]);
+                        PRINTF("CRC1 [%u] = %02x\n", pos,sci_buf[pos]);
                         crc_val = 0;
                         crc_val = (uint16)sci_buf[pos] << 8;
                         app_st = APP_ST_CRC2;
                         break;
 
                     case APP_ST_CRC2:
-                    	 printf("CRC2 [%u] = %02x", pos,sci_buf[pos]);
+                    	 PRINTF("CRC2 [%u] = %02x", pos,sci_buf[pos]);
 
                         crc_val |= (uint16)sci_buf[pos];
 
                         uint16 tmp = crc(cmd_buf, cmd_len);
-                        printf("  CALC CRC 0x%x  RECV 0x%x len=%d cmd_buf[0]=%02x, cmd_buf[%d]=%02x\n",
+                        PRINTF("  CALC CRC 0x%x  RECV 0x%x len=%d cmd_buf[0]=%02x, cmd_buf[%d]=%02x\n",
                         		tmp,
                         		crc_val,
                         		cmd_len,
@@ -194,11 +209,11 @@ void cmd_main(){
                         		cmd_buf[cmd_len-1]);
 
                         if( crc_val == tmp ){
-                        	printf("  [OK] CRC OK\n");
+                        	PRINTF("  [OK] CRC OK\n");
                             app_st = APP_ST_FOOTER1;
                         }else{
                             app_st = APP_ST_NONE;
-                        	printf("  [ERR] BAD CRC\n");
+                        	PRINTF("  [ERR] BAD CRC\n");
                         	cmd_err( CMD_STATUS_CMD_CONTENT_ERR, CMD_ERR_STS_CRC_ERR);
                         }
                         break;
@@ -207,7 +222,7 @@ void cmd_main(){
 
                         if( sci_buf[pos] == ETX ){
 
-                        	printf("FOOTER1 [%u] = %02x\n", pos,sci_buf[pos]);
+                        	PRINTF("FOOTER1 [%u] = %02x\n", pos,sci_buf[pos]);
                             app_st = APP_ST_FOOTER2;
                         }else{
                             app_st = APP_ST_NONE;   //ERROR
@@ -217,12 +232,11 @@ void cmd_main(){
                     case APP_ST_FOOTER2:
 
                         if( sci_buf[pos] == ETX ){
-                        	printf("FOOTER2 [%u] = %02x\n", pos,sci_buf[pos]);
+                        	PRINTF("FOOTER2 [%u] = %02x\n", pos,sci_buf[pos]);
                             
                             //VALID COMMAND
                             CMD_DATA dt = {0};
                             makeCmdData(cmd_buf, &dt, cmd_len);
-//                            printf("cmd =0x02%u\n", dt.cmd_id);
                             checkCmd(&dt);
                         }
                         app_st = APP_ST_NONE;       // END
@@ -246,8 +260,10 @@ void cmd_main(){
     //==============
     if (-1 == close(fd_sci0)) {
         perror("close error");
-        return;
     }
+    
+    PRINTF("uart0 opened\n");
+    
 }
 
 int checkCmd(CMD_DATA* cmd){
@@ -256,14 +272,14 @@ int checkCmd(CMD_DATA* cmd){
 	do{
 		//0x02以外は受信しない
 		if( cmd->to_id != (uint8)0x02){
-			printf("NOT MY DATA TO_ID=0x%x\n", cmd->to_id);
+			PRINTF("NOT MY DATA TO_ID=0x%x\n", cmd->to_id);
 			ret = -1;
 			break;
 		}
 
 		//0x81以外は受信しない
 		if( cmd->to_id_sub != (uint8)0x81){
-			printf("NOT MY DATA TO_SUB_ID=0x%x\n", cmd->to_id_sub);
+			PRINTF("NOT MY DATA TO_SUB_ID=0x%x\n", cmd->to_id_sub);
 			ret = -1;
 			break;
 		}
@@ -272,10 +288,10 @@ int checkCmd(CMD_DATA* cmd){
 		uint8 id_val = cmd->cmd_id & DEVICE_MASK;
 
 		if( id_val == DEVICE_ID ){
-			printf("MY DATA DEVICE_ID=0x%x\n", id_val);
+			PRINTF("MY DATA DEVICE_ID=0x%x\n", id_val);
 			selectCommnd(cmd);
 		}else{
-			printf("NOT MY DATA DEVICE_ID=0x%x\n", id_val);
+			PRINTF("NOT MY DATA DEVICE_ID=0x%x\n", id_val);
 			ret = -1;
 		}
 	} while(0);
@@ -321,17 +337,17 @@ void selectCommnd( CMD_DATA* dt ){
 
 	switch( dt->cmd_id & ~(DEVICE_MASK) ){
 		case CMD_RUN_CMD:
-			printf("=== CMD_RUN_CMD ===\n");
+			PRINTF("=== CMD_RUN_CMD ===\n");
 			run_cmd_popen(dt);
 			break;
 
 		case CMD_GET_FILE:
-			printf("=== CMD_GET_FILE ===\n");
+			PRINTF("=== CMD_GET_FILE ===\n");
 			send_file(dt);
 			break;
 
 		case CMD_PUT_FILE:
-			printf("=== CMD_PUT_FILE ===\n");
+			PRINTF("=== CMD_PUT_FILE ===\n");
 			put_file(dt);
 			break;
 
@@ -348,12 +364,10 @@ void send(uint8* tx_data, int len){
 
     long z = write(fd_sci0, tx_data, len);
     if( z < 0 ){
-        printf("write error\n");
+        PRINTF("write error\n");
     }
-
     usleep(20000);
 //      usleep(10000);
-
 }
 
 
@@ -393,23 +407,23 @@ int put_file( CMD_DATA* dt){
 	}
 
 	if( fp < 0 ){
-		printf("[put_file] open error");
+		PRINTF("[put_file] open error");
 		cmd_err(CMD_STATUS_CMD_CONTENT_ERR, CMD_ERR_STS_PARAM_ERR);
 		return -2;
 	}
-	printf("[put_file] open file %s\n", save_file);
+	PRINTF("[put_file] open file %s\n", save_file);
 
 	len = dt->cmd_param[8];
-	printf("len=%d\n",len);
+	PRINTF("len=%d\n",len);
 
 	for(int i=0; i<len; i++){
-		printf("%02x ", dt->cmd_param[9+i] );
+		PRINTF("%02x ", dt->cmd_param[9+i] );
 	}
-	printf("\n");
+	PRINTF("\n");
 
     long z = write(fp, &dt->cmd_param[9], len);
     if( z < 0 ){
-        printf("[put_file] write error\n");
+        PRINTF("[put_file] write error\n");
         close(fp);
         return -2;
     }
@@ -431,10 +445,10 @@ void send_file( CMD_DATA* dt){
 	int fsize;
 
 	//file open
-	printf("[send_file] open file\n");
+	PRINTF("[send_file] open file\n");
 	int fp = open( dt->cmd_param, O_RDONLY | O_NOCTTY);
 	if( fp < 0 ){
-		printf("[send_file] file is not founded.");
+		PRINTF("[send_file] file is not founded.");
 		// file is not founded.
 		cmd_err(CMD_STATUS_CMD_CONTENT_ERR, CMD_ERR_STS_PARAM_ERR);
 		return;
@@ -447,7 +461,7 @@ void send_file( CMD_DATA* dt){
 			perror("error");
 	 }
 
-	printf("[send_file] size=%d  \n", fsize);
+	PRINTF("[send_file] size=%d  \n", fsize);
 
 	do{
 		memset( tx_buf,  (uint8)0x00, (uint8)256);
@@ -456,7 +470,7 @@ void send_file( CMD_DATA* dt){
 		//file
 		len = read( fp, file_dt, TLM_PARAM_SIZE );
 		if(len <= 0){
-			printf("[send_file] end of file\n");
+			PRINTF("[send_file] end of file\n");
 			break;
 		}
 		tx_size = TLM_DEFAULT_SIZE + len;
@@ -503,7 +517,9 @@ void send_file( CMD_DATA* dt){
 
 		for (int i = 0; i < len; i++) {
 			tx_buf[idx+i] = file_dt[i];
+//			PRINTF("0x%02x ", tx_buf[idx+i]);
 		}
+//		PRINTF("\n");
 		idx += len;
 
 		uint16 crc_val = crc( &tx_buf[TLM_CMD_DISCRIMINATION], tx_size);
@@ -576,7 +592,7 @@ void run_cmd(CMD_DATA* dt){
 
 	uint8 tx_buf[256] = {0};
 
-	printf("%s (length=%d)\n", dt->cmd_param, strlen(dt->cmd_param));
+	PRINTF("%s (length=%d)\n", dt->cmd_param, strlen(dt->cmd_param));
 	system(dt->cmd_param);
 
 	int len = TLM_DEFAULT_SIZE;
@@ -620,24 +636,29 @@ void run_cmd_popen( CMD_DATA* dt){
 	int len = 0;
 	int tx_size = 0;
 	uint8 tx_buf[256] = {0};
+//	uint8 file_dt[TLM_PARAM_SIZE] = {0};
 
 	int fsize;
 
 	FILE *fp;
 	char buf[255];
+//	char *cmdline = "cd /sat/img/ && split -b 1000000 IMG_10.jpg dt. && ls -l";
+//	char *cmdline = "cd /sat/img/ && split -b 1000000 IMG_10.jpg dt. && ls -l";
 
-	printf("%s (length=%d)\n", dt->cmd_param, strlen(dt->cmd_param));
+	PRINTF("%s (length=%d)\n", dt->cmd_param, strlen(dt->cmd_param));
 
+//	fp = popen(cmdline,"r");
 	fp = popen(dt->cmd_param,"r");
 	if( fp == NULL){
-		printf("popen err %s\n", dt->cmd_param);
+//		PRINTF("popen err %s\n", cmdline);
+		PRINTF("popen err %s\n", dt->cmd_param);
 		return;
 	}
 
 	while(fgets(buf, 185, fp) != NULL) {
 
 		int len = strlen( buf );
-		printf("%s", buf);
+		PRINTF("%s", buf);
 
 		tx_size = TLM_DEFAULT_SIZE + len;
 
@@ -682,7 +703,7 @@ void run_cmd_popen( CMD_DATA* dt){
 		int idx = 3 + TLM_DEFAULT_SIZE; // + len;
 		for (int i = 0; i < len; i++) {
 			tx_buf[idx+i] = buf[i];
-//			printf("0x%02x ", tx_buf[idx+i]);
+//			PRINTF("0x%02x ", tx_buf[idx+i]);
 		}
 		idx += len;
 

@@ -10,13 +10,17 @@
 #define satellite_cmd_h
 
 #define DEVICE_MASK		(0xF0)
-#define DEVICE_ID		(0x20) 	// DEVICE 1	// 3bit
-//#define DEVICE_ID		(0x40) 	// DEVICE 2
+//#define DEVICE_ID		(0x20) 	// DEVICE 1	// 3bit
+#define DEVICE_ID		(0x40) 	// DEVICE 2
 //#define DEVICE_ID		(0x60) 	// DEVICE 3
 // #define DEVICE_ID	(0x80) 	// DEVICE 4
 // #define DEVICE_ID	(0xA0) 	// DEVICE 5
 // #define DEVICE_ID	(0xC0) 	// DEVIVE 6
 // #define DEVICE_ID	(0xD0) 	// DEVIVE 7
+
+#define TLM_PARAM_SIZE		((uint8)182)
+#define CMD_PARAM_SIZE		((uint8)185)
+
 
 //CMD
 #define CMD_RUN_CMD	    ((uint8)0x01)

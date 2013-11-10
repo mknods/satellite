@@ -11,9 +11,10 @@
 #include "common.h"
 #include "cmd.h"
 
+
 int main(int argc, const char * argv[])
 {
-    printf("START HODOYOSHI_PI\n");
+    printf("START HODOYOSHI_PI (DEVICE_ID=0x%x)\n",DEVICE_ID);
 
     cmd_main();
     
