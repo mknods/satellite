@@ -14,9 +14,13 @@ uint8 rx_buf[1024];
 
 uint8 header[] = { 0x80,0x80 };
 
-uint8 hk_cmd[]      = { 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,DEVICE_ID|CMD_RUN_CMD, 0x81};
-uint8 get_file_cmd[] = { 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,DEVICE_ID|CMD_GET_FILE,0x81};
+//uint8 hk_cmd[]      = { 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,DEVICE_ID|CMD_RUN_CMD, 0x81};
+//uint8 get_file_cmd[] = { 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,DEVICE_ID|CMD_GET_FILE,0x81};
+uint8 hk_cmd[]      = { 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,CMD_RUN_CMD, 0x81};
+uint8 get_file_cmd[] = { 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,CMD_GET_FILE,0x81};
 
+// rm -f /sat/mov/* && rm -f /sat/out/*
+// raspivid -n -o /sat/mov/out.h264 -t 30000 && MP4Box -fps 30 -add /sat/mov/out.h264 /sat/out/out.mp4 &
 /*
 uint8 param[][185] = {
 		"raspivid -o /sat/mov/out.h264 -t 30000 && MP4Box -fps 30 -add /sat/mov/out.h264 /sat/out/out.mp4 &",
@@ -38,7 +42,7 @@ uint8 param[][185] = {
 */
 //ファイル転送
 uint8 put_file_cmd[] =
-	{ 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,DEVICE_ID|CMD_PUT_FILE, 0x81};
+	{ 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,CMD_PUT_FILE, 0x81};
 	//   header(12bytes)
 	// + filename (8bytes)
 	// + len(1bytes)
@@ -80,12 +84,14 @@ void end(){
 	close(fd_out);
 }
 
-void run_cmd(uint8* p_param){
+void run_cmd(uint8* p_param, uint8 dev_id){
 
 	int len;
 	int param_len = strlen( p_param );
 	memcpy( &tx_buf[0], header, 2 );
 
+	hk_cmd[10] &= ~(0xE0);
+	hk_cmd[10] |= dev_id;
 	len = sizeof(hk_cmd);
 	memcpy( &tx_buf[3], hk_cmd, len);
 
@@ -112,7 +118,7 @@ void run_cmd(uint8* p_param){
 }
 
 
-void get_file( uint8* p_param ){
+void get_file( uint8* p_param , uint8 dev_id){
 
 	int len;
 	int param_len = strlen( p_param );
@@ -120,6 +126,8 @@ void get_file( uint8* p_param ){
 
 	strcpy(ofilename, p_param);
 
+	get_file_cmd[10] &= ~(0xE0);
+	get_file_cmd[10] |= dev_id;
 	len = sizeof(get_file_cmd);
 	memcpy( &tx_buf[3], get_file_cmd, len);
 
@@ -147,7 +155,7 @@ void get_file( uint8* p_param ){
 
 
 
-void put_file(uint8* file_name){
+void put_file(uint8* file_name, uint8 dev_id){
 
 	uint8 file[64] = {0};
 	uint8 buf[255] = {0};
@@ -162,6 +170,9 @@ void put_file(uint8* file_name){
 	uint8 len;
 	int param_len = strlen( file_name );
 	memcpy( &tx_buf[0], header, 2 );
+
+	put_file_cmd[10] &= 0x0f;
+	put_file_cmd[10] |= dev_id;
 	memcpy( &tx_buf[3], put_file_cmd, sizeof(put_file_cmd));
 
 	strcpy( &tx_buf[15], file_name);
@@ -174,7 +185,7 @@ void put_file(uint8* file_name){
 			break;
 		}
 		//LEN
-		tx_buf[2] = 12+8+1+len;
+		tx_buf[2] = 12+9+len;
 
 		// clear
 		for(int i=23; i< 255; i++){
@@ -190,18 +201,19 @@ void put_file(uint8* file_name){
 		printf("\n");
 
 		//CRC
-		uint16 u16_crc = crc( &tx_buf[3], sizeof(len) );
-		tx_buf[3+len] = (uint8)((u16_crc & 0xff00) >> 8);
-		tx_buf[3+len+1] = (uint8)((u16_crc & 0x00ff));
+		uint16 u16_crc = crc( &tx_buf[3], tx_buf[2] );
+		tx_buf[3+tx_buf[2]] = (uint8)((u16_crc & 0xff00) >> 8);
+		tx_buf[3+tx_buf[2]+1] = (uint8)((u16_crc & 0x00ff));
 
 		//ETX
-		memcpy( &tx_buf[3+len+2], footer, 2 );
+		memcpy( &tx_buf[3+tx_buf[2]+2], footer, 2 );
 
 		// SEND BY UART
-		long z = write(fd_sci0, tx_buf, len+7 );
+		long z = write(fd_sci0, tx_buf, tx_buf[2]+7 );
 		if( z < 0 ){
 			printf("write error\n");
 		}
+		usleep(100000);
 	}
 
 	return;
@@ -216,8 +228,9 @@ void drv_rcv(){
     //==============
     //	OPEN
     //==============
-    fd_sci0 = open("/dev/tty.usbserial-FTGCVJGW", O_RDWR | O_NOCTTY | O_NDELAY);
-//    fd_sci0 = open("/dev/tty.usbserial-FTGCVJGW", O_RDWR | O_NOCTTY|O_NONBLOCK);
+
+//    fd_sci0 = open("/dev/tty.usbserial-FTGQL42V", O_RDWR | O_NOCTTY | O_NDELAY);	//USB->SERIAL
+    fd_sci0 = open("/dev/tty.usbserial-FTGCVJGW", O_RDWR | O_NOCTTY | O_NDELAY);	//USB->TTL
     if(fd_sci0 == -1){
         perror("open error");
         return;

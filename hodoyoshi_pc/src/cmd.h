@@ -11,8 +11,8 @@
 
 #include "common.h"
 
-#define DEVICE_ID		(0x20) 	// DEVICE 1	// 3bit
-//#define DEVICE_ID		(0x40) 	// DEVICE 2
+#define DEVICE_ID1		(0x20) 	// DEVICE 1	// 3bit
+#define DEVICE_ID2		(0x40) 	// DEVICE 2
 //#define DEVICE_ID		(0x60) 	// DEVICE 3
 // #define DEVICE_ID	(0x80) 	// DEVICE 4
 // #define DEVICE_ID	(0xA0) 	// DEVICE 5
@@ -159,9 +159,9 @@ typedef struct {
 void drv_rcv();
 //void get_buf_10ms();
 //void run_cmd( int num);
-void run_cmd(uint8* p_param);
-void get_file(uint8* p_param);
-void put_file(uint8* p_param);
+void run_cmd(uint8* p_param, uint8 dev_id);
+void get_file(uint8* p_param, uint8 dev_id);
+void put_file(uint8* p_param, uint8 dev_id);
 void end();
 
 #endif

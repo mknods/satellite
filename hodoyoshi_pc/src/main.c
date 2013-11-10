@@ -28,6 +28,7 @@ static int cmd_state = 0;
 int main(int argc, const char * argv[])
 {
 
+
 	int pos_start = 0;
 	int pos = 0;
 	pthread_t thread1;
@@ -75,22 +76,34 @@ int main(int argc, const char * argv[])
 
 			if(cmd_state==0){
 
-				if( strcmp( "run", &cmd_buf[0]) == 0 ){
+				if( strcmp( "run1", &cmd_buf[0]) == 0 ){
 					cmd_state = 1;
-				}else if( strcmp( "get", &cmd_buf[0]) == 0 ){
+				}else if( strcmp( "get1", &cmd_buf[0]) == 0 ){
 					cmd_state = 2;
-				}else if( strcmp( "put", &cmd_buf[0]) == 0 ){
+				}else if( strcmp( "put1", &cmd_buf[0]) == 0 ){
 					cmd_state = 3;
+				}else if( strcmp( "run2", &cmd_buf[0]) == 0 ){
+					cmd_state = 4;
+				}else if( strcmp( "get2", &cmd_buf[0]) == 0 ){
+					cmd_state = 5;
+				}else if( strcmp( "put2", &cmd_buf[0]) == 0 ){
+					cmd_state = 6;
 				}else{
 					cmd_state = 0;
 				}
 			}else{
 				if(cmd_state == 1){
-					run_cmd(&cmd_buf[0]);
+					run_cmd(&cmd_buf[0], DEVICE_ID1);
 				}else if(cmd_state == 2){
-					get_file(&cmd_buf[0]);
+					get_file(&cmd_buf[0], DEVICE_ID1);
 				}else if(cmd_state == 3){
-					put_file(&cmd_buf[0]);
+					put_file(&cmd_buf[0], DEVICE_ID1);
+				}else if(cmd_state == 4){
+					run_cmd(&cmd_buf[0], DEVICE_ID2);
+				}else if(cmd_state == 5){
+					get_file(&cmd_buf[0], DEVICE_ID2);
+				}else if(cmd_state == 6){
+					put_file(&cmd_buf[0], DEVICE_ID2);
 				}else{
 				}
 				cmd_state = 0;
