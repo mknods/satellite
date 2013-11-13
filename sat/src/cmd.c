@@ -367,7 +367,6 @@ void send(uint8* tx_data, int len){
         PRINTF("write error\n");
     }
     usleep(20000);
-//      usleep(10000);
 }
 
 
@@ -490,20 +489,16 @@ void send_file( CMD_DATA* dt){
 
 		fsize -= len;
 		if(tlm_cnt == 1){
-			if(len < TLM_PARAM_SIZE){
+			if(fsize <= 0){
 				tx_buf[TLM_CMD_STS] = CMD_STATUS_COMPLETED;
 			}else{
 				tx_buf[TLM_CMD_STS] = CMD_STATUS_RECEIVED;
 			}
 		}else{
-			if(len < TLM_PARAM_SIZE){
+			if(fsize <= 0){
 				tx_buf[TLM_CMD_STS] = CMD_STATUS_COMPLETED;
 			}else{
-				if(fsize <= 0){
-					tx_buf[TLM_CMD_STS] = CMD_STATUS_COMPLETED;
-				}else{
-					tx_buf[TLM_CMD_STS] = CMD_STATUS_IN_PROGRESS;
-				}
+				tx_buf[TLM_CMD_STS] = CMD_STATUS_IN_PROGRESS;
 			}
 		}
 		tx_buf[TLM_CMD_ERROR_STS] = CMD_ERR_STS_NORMAL;
@@ -517,9 +512,9 @@ void send_file( CMD_DATA* dt){
 
 		for (int i = 0; i < len; i++) {
 			tx_buf[idx+i] = file_dt[i];
-//			PRINTF("0x%02x ", tx_buf[idx+i]);
+			PRINTF("0x%02x ", tx_buf[idx+i]);
 		}
-//		PRINTF("\n");
+		PRINTF("\n");
 		idx += len;
 
 		uint16 crc_val = crc( &tx_buf[TLM_CMD_DISCRIMINATION], tx_size);
