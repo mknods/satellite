@@ -19,12 +19,13 @@ uint8 header[] = { 0x80,0x80 };
 uint8 hk_cmd[]      = { 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,CMD_RUN_CMD, 0x81};
 uint8 get_file_cmd[] = { 0x00,0x00,0x02,0x00,0x12,0x34,0x56,0x78,0x00,0x00,CMD_GET_FILE,0x81};
 
+// halt -p
 // rm -f /sat/mov/* && rm -f /sat/out/*
-// raspivid -n -o /sat/mov/out.h264 -t 30000 && MP4Box -fps 30 -add /sat/mov/out.h264 /sat/out/out.mp4 &
+// raspivid -n -o /sat/mov/out.h264 -t 1000 && MP4Box -fps 30 -add /sat/mov/out.h264 /sat/out/out.mp4 &0000 && MP4Box -fps 30 -add /sat/mov/out.h264 /sat/out/out.mp4 &
 /*
 uint8 param[][185] = {
 		"raspivid -o /sat/mov/out.h264 -t 30000 && MP4Box -fps 30 -add /sat/mov/out.h264 /sat/out/out.mp4 &",
-		"/sat/sh/tl.sh 10 1920x1080 5 12 /dev/video0 50 &",
+		"/sat/sh/tl.sh 10 1920x1080 5 5 /dev/video0 65 15&",
 		"/sat/sh/gpio1.sh",
 		"/sat/sh/gpio0.sh",
 		"/sat/sh/temp.sh",
@@ -90,8 +91,11 @@ void run_cmd(uint8* p_param, uint8 dev_id){
 	int param_len = strlen( p_param );
 	memcpy( &tx_buf[0], header, 2 );
 
-	hk_cmd[10] &= ~(0xE0);
+	hk_cmd[10] &= 0x0f;
 	hk_cmd[10] |= dev_id;
+
+//	hk_cmd[10] &= ~(0xE0);
+//	hk_cmd[10] |= dev_id;
 	len = sizeof(hk_cmd);
 	memcpy( &tx_buf[3], hk_cmd, len);
 
@@ -126,8 +130,26 @@ void get_file( uint8* p_param , uint8 dev_id){
 
 	strcpy(ofilename, p_param);
 
-	get_file_cmd[10] &= ~(0xE0);
+	//FILE作成
+	uint8 out[64] = {0};
+	sprintf(out, "%s%s",out_file, ofilename);
+	printf("%s\n",out);
+
+	if(fd_out >= 0){
+		close(fd_out);
+	}
+	fd_out = open(
+			out,
+			O_NOCTTY | O_NONBLOCK |O_CREAT| O_RDWR,
+			S_IRWXU|S_IRWXG|S_IRWXO);
+	if(fd_out<0){
+		perror("[get_file] can't create file.\n");
+		return;
+	}
+
+	get_file_cmd[10] &= 0x0f;
 	get_file_cmd[10] |= dev_id;
+
 	len = sizeof(get_file_cmd);
 	memcpy( &tx_buf[3], get_file_cmd, len);
 
@@ -142,10 +164,10 @@ void get_file( uint8* p_param , uint8 dev_id){
 	tx_buf[3+len+1] = (uint8)((u16_crc & 0x00ff));
 	memcpy( &tx_buf[3+len+2], footer, 2 );
 
-	for(int i=0; i< len+7; i++){
-		printf("%02x",tx_buf[i]);
-	}
-	printf("\n");
+//	for(int i=0; i< len+7; i++){
+//		printf("%02x",tx_buf[i]);
+//	}
+//	printf("\n");
 
 	long z = write(fd_sci0, tx_buf, len+7 );
 	if( z < 0 ){
@@ -384,6 +406,7 @@ void drv_rcv(){
 //				printf(" CALC CRC 0x%02x  RECV 0x%x len=%d ",tmp, crc_val, cmd_len);
 
 				if( crc_val == tmp ){
+//					printf("\n");
 //					printf(" [OK] CRC OK\n");
 					app_st = APP_ST_FOOTER1;
 				}else{
@@ -417,53 +440,60 @@ void drv_rcv(){
 
 						if( cmd_buf[cmd_sts] == CMD_STATUS_RECEIVED ){
 
-							if(fd_out < 0){
-
-								uint8 out[64] = {0};
-								sprintf(out, "%s%s",out_file, ofilename);
-								printf("%s\n",out);
-
-								fd_out = open(
-										out,
-										O_NOCTTY | O_NONBLOCK |O_CREAT| O_RDWR,
-										S_IRWXU|S_IRWXG|S_IRWXO);
-							}
-							if (fd_out < 0) {
-								perror("open error");
-								return;
-							}else{
+//							if(fd_out < 0){
+//
+//								uint8 out[64] = {0};
+//								sprintf(out, "%s%s",out_file, ofilename);
+//								printf("%s\n",out);
+//
+//								fd_out = open(
+//										out,
+//										O_NOCTTY | O_NONBLOCK |O_CREAT| O_RDWR,
+//										S_IRWXU|S_IRWXG|S_IRWXO);
+//							}
+//							if (fd_out < 0) {
+//								perror("open error");
+//								return;
+//							}else{
 								write(fd_out, &cmd_buf[param_offset], param_len);
-							}
+//							}
 
 						}else if( cmd_buf[cmd_sts] == CMD_STATUS_COMPLETED ){
 
-							if(fd_out < 0){
-								uint8 out[64] = {0};
-								sprintf(out, "%s%s",out_file, ofilename);
-								printf("%s\n",out);
-
-								fd_out = open(
-										out,
-										O_RDWR | O_NOCTTY | O_NONBLOCK |O_CREAT| O_RDWR,
-										S_IRWXU|S_IRWXG|S_IRWXO);
-							}
-							if(fd_out >= 0){
+//							if(fd_out < 0){
+//								uint8 out[64] = {0};
+//								sprintf(out, "%s%s",out_file, ofilename);
+//								printf("%s\n",out);
+//
+//								fd_out = open(
+//										out,
+//										O_RDWR | O_NOCTTY | O_NONBLOCK |O_CREAT| O_RDWR,
+//										S_IRWXU|S_IRWXG|S_IRWXO);
+//							}
+//							if(fd_out >= 0){
 								if( write(fd_out, &cmd_buf[param_offset], param_len) < 0 ){
 									perror("write error");
 									close(fd_out);
 									return;
 								}
+
 								close(fd_out);
 								break;
-							}
+//							}else{
+//								perror("CMD_STATUS_COMPLETED else\n");
+//								break;
+//							}
 						}else{
-							if( fd_out >= 0 ){
+//							if( fd_out >= 0 ){
 								if( write(fd_out, &cmd_buf[param_offset], param_len) < 0 ){
-									perror("write error");
+									perror("write error\n");
 									close(fd_out);
 									return;
 								}
-							}
+//							}else{
+//								close(fd_out);
+//								perror("inprogress else\n");
+//							}
 						}
 					}
 					app_st = APP_ST_NONE;       // END
