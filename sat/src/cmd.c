@@ -277,8 +277,8 @@ int checkCmd(CMD_DATA* cmd){
 			break;
 		}
 
-		//0x81以外は受信しない
-		if( cmd->to_id_sub != (uint8)0x81){
+		//0x82以外は受信しない
+		if( cmd->to_id_sub != (uint8)0x82){
 			PRINTF("NOT MY DATA TO_SUB_ID=0x%x\n", cmd->to_id_sub);
 			ret = -1;
 			break;
@@ -366,7 +366,8 @@ void send(uint8* tx_data, int len){
     if( z < 0 ){
         PRINTF("write error\n");
     }
-    usleep(20000);
+    usleep(10000);
+//    usleep(20000);
 }
 
 
@@ -489,6 +490,7 @@ void send_file( CMD_DATA* dt){
 
 		fsize -= len;
 		if(tlm_cnt == 1){
+			//if(len < TLM_PARAM_SIZE){
 			if(fsize <= 0){
 				tx_buf[TLM_CMD_STS] = CMD_STATUS_COMPLETED;
 			}else{
@@ -505,7 +507,7 @@ void send_file( CMD_DATA* dt){
 		tx_buf[TLM_CMD_COUNT] = tlm_cmd_count;
 		tx_buf[TLM_PACKET_ID] = MISSION_DATA;
 		tx_buf[TLM_FROM_ID] = 0x02;		//mission data
-		tx_buf[TLM_FROM_ID_SUB] = 0x81;
+		tx_buf[TLM_FROM_ID_SUB] = 0x82;
 		tx_buf[TLM_TO_ID] = 0x02;		//mission data
 
 		int idx = 3 + TLM_DEFAULT_SIZE; // + len;
@@ -569,7 +571,7 @@ void cmd_err( uint8 cmd_sts, uint8 cmd_err_sts ) {
 	tx_buf[TLM_CMD_COUNT] = tlm_cmd_count;
 	tx_buf[TLM_PACKET_ID] = HK_DATA;
 	tx_buf[TLM_FROM_ID] = 0x02;
-	tx_buf[TLM_FROM_ID_SUB] = 0x81;
+	tx_buf[TLM_FROM_ID_SUB] = 0x82;
 	tx_buf[TLM_TO_ID] = 0x00; //HK_DATA
 
 	int idx = 3 + len;
@@ -611,7 +613,7 @@ void run_cmd(CMD_DATA* dt){
 	tx_buf[TLM_CMD_COUNT] = tlm_cmd_count;
 	tx_buf[TLM_PACKET_ID] = HK_DATA;
 	tx_buf[TLM_FROM_ID] = 0x02;
-	tx_buf[TLM_FROM_ID_SUB] = 0x81;
+	tx_buf[TLM_FROM_ID_SUB] = 0x82;
 	tx_buf[TLM_TO_ID] = 0x00;	//HK_DATA
 
 	int idx = 3 + len;
@@ -692,7 +694,7 @@ void run_cmd_popen( CMD_DATA* dt){
 		tx_buf[TLM_CMD_COUNT] = tlm_cmd_count;
 		tx_buf[TLM_PACKET_ID] = HK_DATA;	//s-band
 		tx_buf[TLM_FROM_ID] = 0x02;
-		tx_buf[TLM_FROM_ID_SUB] = 0x81;
+		tx_buf[TLM_FROM_ID_SUB] = 0x82;
 		tx_buf[TLM_TO_ID] = 0x00;		//s-band
 
 		int idx = 3 + TLM_DEFAULT_SIZE; // + len;
