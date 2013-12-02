@@ -39,10 +39,15 @@ uint8 etx[] = { 0x81,0x81 };
 int main(int argc, const char * argv[])
 {
 
-    string in_file =  "/Users/jiropost/out/Icon_1024.png";
+    string in_file =  "/Users/jiropost/out/IMG_0218.PNG";
+//    string in_file =  "/Users/jiropost/out/Icon_1024.png";
     string out_file = "/Users/jiropost/out/put.data";
-    string filename = "icon4";
-    
+    string filename = "Icon5";
+
+//    string in_file =  "/Users/jiropost/out/Icon_1024.png";
+//    string out_file = "/Users/jiropost/out/put.data";
+//    string filename = "icon";
+
     int fp_in;
     int fp_sci;
     int fp_out;
@@ -135,7 +140,7 @@ int main(int argc, const char * argv[])
         }
         
         
-        usleep(10000);
+        usleep(50000);
         
     } while(len > 0);
 

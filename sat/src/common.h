@@ -9,7 +9,7 @@ typedef signed long sint32;
 // ### use Beagle Bone Black ###
 //#define BBB 1
 
-#define _DEBUG
+//#define _DEBUG
 #ifdef _DEBUG
     #define PRINTF(...) printf(__VA_ARGS__)
 #else

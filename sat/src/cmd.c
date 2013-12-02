@@ -213,7 +213,7 @@ void cmd_main(){
                             app_st = APP_ST_FOOTER1;
                         }else{
                             app_st = APP_ST_NONE;
-                        	PRINTF("  [ERR] BAD CRC\n");
+                        	perror("  [ERR] BAD CRC\n");
                         	cmd_err( CMD_STATUS_CMD_CONTENT_ERR, CMD_ERR_STS_CRC_ERR);
                         }
                         break;
@@ -367,7 +367,6 @@ void send(uint8* tx_data, int len){
         PRINTF("write error\n");
     }
     usleep(10000);
-//    usleep(20000);
 }
 
 
